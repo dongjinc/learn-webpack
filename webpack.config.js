@@ -4,17 +4,17 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 // 压缩css
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
-
-
-console.log(process.cwd(), 'process')
+// 清除dist
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 // https://github.com/tcoopman/image-webpack-loader
 const path = require('path')
+
 /** @type {import('webpack').Configuration} */
 const config = {
     mode: 'development',
     entry: './src/index.js',
     output: {
-        filename: 'bundle.js',
+        filename: '[name].bundle.js',
         path: path.resolve(__dirname, 'dist')
     },
     module: {
@@ -29,10 +29,8 @@ const config = {
                 use: [
                     'file-loader',
                     {
-                        loader: 'image-webpack-loader',
-                        options: {
-                            
-                        }
+                        // loader: 'image-webpack-loader',
+                        // options: {}
                     }
                 ]
             }
@@ -47,7 +45,8 @@ const config = {
         //     filename: 'index.html',
         //     template: 'public/index.ejs',
         //     title: 'aaa'
-        // })
+        // }),
+        new CleanWebpackPlugin()
     ],
     optimization: {
         runtimeChunk: false,
@@ -61,6 +60,15 @@ const config = {
                 // minify: CssMinimizerPlugin.cleanCssMinify
             })
         ],
+        splitChunks: {
+            chunks: 'all',
+            minChunks: 1,
+            cacheGroups: {
+                defaultVendor: {
+                    filename: '[name].bundle.js'
+                }
+            }
+        }
     }
 }
 
