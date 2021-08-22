@@ -1,52 +1,76 @@
-
-const HtmlWebpackPlugin = require('html-webpack-plugin')
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 // 提取css
-const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 // 压缩css
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
+const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 // 清除dist
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 // https://github.com/tcoopman/image-webpack-loader
-const path = require('path')
+const path = require("path");
 
 /** @type {import('webpack').Configuration} */
 const config = {
-    mode: 'development',
-    entry: './src/index.js',
+    mode: "development",
+    entry: "./src/index.js",
     output: {
-        filename: '[name].bundle.js',
-        path: path.resolve(__dirname, 'dist')
+        filename: "[name].bundle.js",
+        path: path.resolve(__dirname, "dist"),
+        // library: {
+        //     // type: 'commonjs'
+        // }
+        // https://webpack.docschina.org/guides/asset-modules/
+        assetModuleFilename: 'images/[hash][ext][query]'
     },
+
     module: {
         rules: [
             {
                 test: /\.css$/,
                 // MiniCssExtractPlugin.loader
-                use: ['style-loader', 'css-loader']
+                use: [
+                    "style-loader",
+                    "css-loader",
+                    {
+                        loader: 'postcss-loader',
+                        options: {
+                            postcssOptions: {
+                                plugins: [
+                                    [
+                                        'postcss-preset-env',
+                                        {
+                                          // 选项
+                                        },
+                                      ]
+                                ]
+                            }
+                        }
+                    },
+                ],
             },
             {
                 test: /\.(png|svg|jpg|gif)$/,
-                use: [
-                    'file-loader',
-                    {
-                        // loader: 'image-webpack-loader',
-                        // options: {}
-                    }
-                ]
-            }
-        ]
+                type: 'asset/resource'
+                // use: [
+                //     "file-loader",
+                //     {
+                //         // loader: 'image-webpack-loader',
+                //         // options: {}
+                //     },
+                // ],
+            },
+        ],
     },
     plugins: [
         new MiniCssExtractPlugin({
-            filename: '[name].css',
-            chunkFilename: '[id].css',
+            filename: "[name].css",
+            chunkFilename: "[id].css",
         }),
         // new HtmlWebpackPlugin({
         //     filename: 'index.html',
         //     template: 'public/index.ejs',
         //     title: 'aaa'
         // }),
-        new CleanWebpackPlugin()
+        new CleanWebpackPlugin(),
     ],
     optimization: {
         runtimeChunk: false,
@@ -55,21 +79,21 @@ const config = {
             // For webpack@5 you can use the `...` syntax to extend existing minimizers (i.e `terser-webpack-plugin`)
             `...`,
             new CssMinimizerPlugin({
-                include: /main.css/ig, // include files to include. refers to output xx.css files
+                include: /main.css/gi, // include files to include. refers to output xx.css files
                 parallel: true, // enable/disable multi-process parallel running eg: number | boolean
                 // minify: CssMinimizerPlugin.cleanCssMinify
-            })
+            }),
         ],
-        splitChunks: {
-            chunks: 'all',
-            minChunks: 1,
-            cacheGroups: {
-                defaultVendor: {
-                    filename: '[name].bundle.js'
-                }
-            }
-        }
-    }
-}
+        // splitChunks: {
+        //     chunks: 'all',
+        //     minChunks: 1,
+        //     cacheGroups: {
+        //         defaultVendor: {
+        //             filename: '[name].bundle.js'
+        //         }
+        //     }
+        // }
+    },
+};
 
-module.exports = config
+module.exports = config;

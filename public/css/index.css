@@ -2,4 +2,8 @@
   /* ll */
   color: aquamarine;
   /* background: url("../images/icon.png"); */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden auto;
 }
