@@ -7,7 +7,6 @@ const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 // https://github.com/tcoopman/image-webpack-loader
 const path = require("path");
-
 /** @type {import('webpack').Configuration} */
 const config = {
     mode: "development",
@@ -19,7 +18,8 @@ const config = {
         //     // type: 'commonjs'
         // }
         // https://webpack.docschina.org/guides/asset-modules/
-        assetModuleFilename: 'images/[hash][ext][query]'
+        // 自定义输出文件名
+        // assetModuleFilename: 'images/[hash][ext][query]'
     },
 
     module: {
@@ -49,7 +49,21 @@ const config = {
             },
             {
                 test: /\.(png|svg|jpg|gif)$/,
-                type: 'asset/resource'
+                type: 'asset/inline', // 'asset/resource' | 'asset/inline' | 'asset/source' | 'asset'
+                // Rule.generator.filename 与 output.assetModuleFilename 相同，并且仅适用于 asset 和 asset/resource 模块类型。
+                // 'asset/resource' -> 自定义输出文件名
+                // generator: {
+                //     filename: 'static/[hash][ext][query]'
+                // }
+
+                // 'asset/inline' -> 自定义 data URI 生成器
+                // generator:{
+                //     dataUrl: content => {
+                //         content = content.toString();
+                //         // const svgToMiniDataURI = require('mini-svg-data-uri')
+                //         return svgToMiniDataURI(content)
+                //     }
+                // }
                 // use: [
                 //     "file-loader",
                 //     {
@@ -58,6 +72,17 @@ const config = {
                 //     },
                 // ],
             },
+            // {
+            //     test: /\.html/,
+            //     type: 'asset/resource',
+            //     generator:{
+            //         filename: 'static/[hash][ext][query]'
+            //     }
+            // }
+            {
+                test: /\.txt/,
+                type: 'asset/source' // 所有 .txt 文件将原样注入到 bundle 中
+            }
         ],
     },
     plugins: [

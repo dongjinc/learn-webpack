@@ -25,7 +25,7 @@
   .postcss.json、.postcss.yaml、.postcss.yml、.postcss.js 或者 .postcss.cjs 文件
   postcss.config.js 或者 postcss.config.cjs 导出一个对象的 CommonJS 模块（推荐）
 
-  plugins: [postcss-preset-env, autoprefixer, ]
+  plugins: [postcss-preset-env, autoprefixer]
   postcss-preset-env包含autoprefixer，注意：使用该插件前提要加 browserslist，在package.json
   ```json
     "browserslist": [
@@ -50,7 +50,9 @@ asset/resource asset/inline asset/source asset
 
 resource资源
 自定义输出文件名
-
+output: {
+  assetModuleFilename: 'images/[hash][ext][query]'
+}
 
 
 - plugin 打包优化、资源管理，注入环境变量
