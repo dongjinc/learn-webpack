@@ -5,8 +5,12 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 // 清除dist
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-
+// 分析资源路径映射
 const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
+// 进度条
+// const WebPackBar = require('webpackbar')
+const ProgressBarPlugin = require('progress-bar-webpack-plugin')
+
 // https://github.com/tcoopman/image-webpack-loader
 const path = require("path");
 /** @type {import('webpack').Configuration} */
@@ -29,6 +33,20 @@ const config = {
         // 自定义输出文件名
         // assetModuleFilename: 'images/[hash][ext][query]'
     },
+    devServer: {
+        static: './dist',
+        client: {
+            // 
+            overlay:{
+                errors: true
+            }
+        },
+        writeToDisk: true,
+    },
+    // performance: {
+    //     // 构建性能提示关闭
+    //     hints: false
+    // },
     plugins: [
         new MiniCssExtractPlugin({
             filename: "[name].css",
@@ -40,8 +58,9 @@ const config = {
             template: 'public/index.ejs',
             title: '管理输出'
         }),
-        new WebpackManifestPlugin()
+        new WebpackManifestPlugin(),
         // new CleanWebpackPlugin(),
+        new ProgressBarPlugin()
     ],
     optimization: {
         runtimeChunk: false,
