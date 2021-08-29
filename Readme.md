@@ -143,3 +143,10 @@ path.resolve() 两个相对路径变成绝对路径
 
 file-loader 1.发现图片模块 2.打包到 dist 目录下，改名字，自定义 3.移动到 dist 目录下后，得到图片的名称 4.返回使用图片名称
 npm webpack --config webpack.config.js
+
+
+
+git push origin --delete main
+git -vv
+find .git/refs
+git remote set-head origin master
