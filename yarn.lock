@@ -724,6 +724,14 @@ csso@^4.2.0:
   dependencies:
     css-tree "^1.1.2"
 
+csv-loader@^3.0.3:
+  version "3.0.3"
+  resolved "http://npm-registry.qunhequnhe.com/csv-loader/download/csv-loader-3.0.3.tgz#eba02221a6f3ceb1447140d3bae26f4032b4af52"
+  integrity sha1-66AiIabzzrFEcUDTuuJvQDK0r1I=
+  dependencies:
+    loader-utils "^2.0.0"
+    papaparse "^5.2.0"
+
 del@^4.1.1:
   version "4.1.1"
   resolved "http://npm-registry.qunhequnhe.com/del/download/del-4.1.1.tgz#9e8f117222ea44a31ff3a156c049b99052a9f0b4"
@@ -1434,6 +1442,11 @@ p-try@^2.0.0:
   version "2.2.0"
   resolved "http://npm-registry.qunhequnhe.com/p-try/download/p-try-2.2.0.tgz#cb2868540e313d61de58fafbe35ce9004d5540e6"
   integrity sha1-yyhoVA4xPWHeWPr741zpAE1VQOY=
+
+papaparse@^5.2.0:
+  version "5.3.1"
+  resolved "http://npm-registry.qunhequnhe.com/papaparse/download/papaparse-5.3.1.tgz#770b7a9124d821d4b2132132b7bd7dce7194b5b1"
+  integrity sha1-dwt6kSTYIdSyEyEyt719znGUtbE=
 
 param-case@^3.0.3:
   version "3.0.4"
@@ -2242,6 +2255,11 @@ signal-exit@^3.0.3:
   resolved "http://npm-registry.qunhequnhe.com/signal-exit/download/signal-exit-3.0.3.tgz#a1410c2edd8f077b08b4e253c8eacfcaf057461c"
   integrity sha1-oUEMLt2PB3sItOJTyOrPyvBXRhw=
 
+source-list-map@^2.0.1:
+  version "2.0.1"
+  resolved "http://npm-registry.qunhequnhe.com/source-list-map/download/source-list-map-2.0.1.tgz#3993bd873bfc48479cca9ea3a547835c7c154b34"
+  integrity sha1-OZO9hzv8SEecyp6jpUeDXHwVSzQ=
+
 source-map-js@^0.6.2:
   version "0.6.2"
   resolved "http://npm-registry.qunhequnhe.com/source-map-js/download/source-map-js-0.6.2.tgz#0bb5de631b41cfbda6cfba8bd05a80efdfd2385e"
@@ -2445,6 +2463,14 @@ webpack-cli@^4.7.2:
     v8-compile-cache "^2.2.0"
     webpack-merge "^5.7.3"
 
+webpack-manifest-plugin@^4.0.2:
+  version "4.0.2"
+  resolved "http://npm-registry.qunhequnhe.com/webpack-manifest-plugin/download/webpack-manifest-plugin-4.0.2.tgz#a7ee46219a6c820a5cdae0f7ddb7cb04837448fb"
+  integrity sha1-p+5GIZpsggpc2uD33bfLBIN0SPs=
+  dependencies:
+    tapable "^2.0.0"
+    webpack-sources "^2.2.0"
+
 webpack-merge@^5.7.3:
   version "5.8.0"
   resolved "http://npm-registry.qunhequnhe.com/webpack-merge/download/webpack-merge-5.8.0.tgz#2b39dbf22af87776ad744c390223731d30a68f61"
@@ -2452,6 +2478,14 @@ webpack-merge@^5.7.3:
   dependencies:
     clone-deep "^4.0.1"
     wildcard "^2.0.0"
+
+webpack-sources@^2.2.0:
+  version "2.3.1"
+  resolved "http://npm-registry.qunhequnhe.com/webpack-sources/download/webpack-sources-2.3.1.tgz#570de0af163949fe272233c2cefe1b56f74511fd"
+  integrity sha1-Vw3grxY5Sf4nIjPCzv4bVvdFEf0=
+  dependencies:
+    source-list-map "^2.0.1"
+    source-map "^0.6.1"
 
 webpack-sources@^3.2.0:
   version "3.2.0"

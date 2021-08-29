@@ -1,4 +1,12 @@
+@font-face {
+  font-family: "MyFont";
+  src: url("../kust.woff.ttf") format("woff2"),
+    url("../kust.woff.ttf") format("woff");
+  font-weight: 600;
+  font-style: normal;
+}
 .hello {
+  font-family: "MyFont";
   /* ll */
   color: aquamarine;
   /* background: url("../images/icon.png"); */

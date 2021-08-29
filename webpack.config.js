@@ -5,15 +5,23 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CssMinimizerPlugin = require("css-minimizer-webpack-plugin");
 // 清除dist
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+
+const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 // https://github.com/tcoopman/image-webpack-loader
 const path = require("path");
 /** @type {import('webpack').Configuration} */
 const config = {
-    mode: "development",
-    entry: "./src/index.js",
+    mode: "production",
+    entry: {
+        index: "./src/index.js",
+        print: "./src/print.js"
+    },
+    devtool: 'inline-source-map',
     output: {
         filename: "[name].bundle.js",
         path: path.resolve(__dirname, "dist"),
+        clean: true,
+        publicPath: ''
         // library: {
         //     // type: 'commonjs'
         // }
@@ -21,81 +29,19 @@ const config = {
         // 自定义输出文件名
         // assetModuleFilename: 'images/[hash][ext][query]'
     },
-
-    module: {
-        rules: [
-            {
-                test: /\.css$/,
-                // MiniCssExtractPlugin.loader
-                use: [
-                    "style-loader",
-                    "css-loader",
-                    {
-                        loader: 'postcss-loader',
-                        options: {
-                            postcssOptions: {
-                                plugins: [
-                                    [
-                                        'postcss-preset-env',
-                                        {
-                                          // 选项
-                                        },
-                                      ]
-                                ]
-                            }
-                        }
-                    },
-                ],
-            },
-            {
-                test: /\.(png|svg|jpg|gif)$/,
-                type: 'asset/inline', // 'asset/resource' | 'asset/inline' | 'asset/source' | 'asset'
-                // Rule.generator.filename 与 output.assetModuleFilename 相同，并且仅适用于 asset 和 asset/resource 模块类型。
-                // 'asset/resource' -> 自定义输出文件名
-                // generator: {
-                //     filename: 'static/[hash][ext][query]'
-                // }
-
-                // 'asset/inline' -> 自定义 data URI 生成器
-                // generator:{
-                //     dataUrl: content => {
-                //         content = content.toString();
-                //         // const svgToMiniDataURI = require('mini-svg-data-uri')
-                //         return svgToMiniDataURI(content)
-                //     }
-                // }
-                // use: [
-                //     "file-loader",
-                //     {
-                //         // loader: 'image-webpack-loader',
-                //         // options: {}
-                //     },
-                // ],
-            },
-            // {
-            //     test: /\.html/,
-            //     type: 'asset/resource',
-            //     generator:{
-            //         filename: 'static/[hash][ext][query]'
-            //     }
-            // }
-            {
-                test: /\.txt/,
-                type: 'asset/source' // 所有 .txt 文件将原样注入到 bundle 中
-            }
-        ],
-    },
     plugins: [
         new MiniCssExtractPlugin({
             filename: "[name].css",
             chunkFilename: "[id].css",
         }),
-        // new HtmlWebpackPlugin({
-        //     filename: 'index.html',
-        //     template: 'public/index.ejs',
-        //     title: 'aaa'
-        // }),
-        new CleanWebpackPlugin(),
+        new HtmlWebpackPlugin({
+            filename: 'index.html',
+            // 如果配置template模板，会导致title不生效，可通过 <%= htmlWebpackPlugin.options.title %> 获取配置的变量
+            template: 'public/index.ejs',
+            title: '管理输出'
+        }),
+        new WebpackManifestPlugin()
+        // new CleanWebpackPlugin(),
     ],
     optimization: {
         runtimeChunk: false,
