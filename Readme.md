@@ -87,6 +87,7 @@ webpack5 中，output.publicPath: "auto" ，导致 webpack-manifest-plugin 输�
   为了更容易地追踪 error 和 warning。js 提供了 source maps 功能，可以将编译后的代码映射到原始源代码。如果一个错误来自于 b.js，source map 就会明确的告诉你
   通过使用 devtool: inline-source-map 选项，获取报错的源文件行数
   <!-- https://webpack.docschina.org/configuration/devtool/ -->
+
   2.开发工具
   1).webpack's watch mode
   2).webpack-dev-server
@@ -101,7 +102,9 @@ webpack-dev-server 会从 output.path 中定义的目录为服务提供 bundle �
 
 webpack-dev-server 在编译之后不会写入到任何输出文件。而是将 bundle 文件保留在内存中，然后将它们 serve 到 server 中，就好像它们是挂载在 server 根路径上的真实文件一样。如果你的页面希望在其他不同路径中找到 bundle 文件，则可以通过 dev server 配置中的 devMiddleware.publicPath 选项进行修改。
 
+
 <!-- https://webpack.docschina.org/guides/development/#using-source-maps -->
+
 如果根据webpack官方文档配置到webpack-dev-server时，通过webpack serve --open命令启动时，浏览器会报错，警告提示，控制台也会有相似错误。1
 解决办法：
 1).通过webpack -> performance:{} hints: false，即可关闭控制台错误和浏览器错误
@@ -113,6 +116,29 @@ webpack-dev-server 在编译之后不会写入到任何输出文件。而是将 
   }
 }
 <!-- https://github.com/webpack/webpack-dev-server/blob/master/migration-v4.md -->
+
+webpack-dev-server ⚠️：不提供bundle.js自动注入，需手动注入
+在webpack5中 devServer配置有过改动，v3与v4有不同
+新增了static，去掉了contentBase
+static: {
+  directory: '', // 基座，告诉服务器从哪里提供内容。
+  publicPath: '' // 告诉服务器在哪个URL提供static.directory的内容
+}
+访问地址 http://[devServer.host]:[devServer.port]/[static.publicPath]/[output.filename]
+
+
+1.webpack-dev-middleware是一个封装器，可以把webpack处理过的文件发送到一个server，webpack-dev-server在内部使用了它。然而它也可以作为一个单独的package来使用，一边根据需求进行更多自定义设置
+其中webpack-dev-middleware并不支持liveReload，如果要支持reload需要借助 webpack-hot-middleware
+目前官方提供了webpack-dev-server，由于局限性比较大，单方面对于只提供了使用权限，为了便于扩展性，特此出了 dev-server和hot-middleware
+考虑：1.在使用 webpack-dev-middleware和hot-middleware时，是不是可以扩展微前端
+2.webpack-dev-middleware和hot-middleware 会导致 innerHTML两次 ？？
+
+2.HMR加载样式
+借助于style-loader，使用模块热替换来加载css。主要是因为loader幕后使用了module.hot.accept
+
+
+<!-- 模块热替换 -->
+官方 dev-server.js config配置中plugin少写了一个s导致，还请注意
 
 - webpack 打包进度条 
 webpackbar
@@ -150,3 +176,25 @@ git push origin --delete main
 git -vv
 find .git/refs
 git remote set-head origin master
+
+
+https://github.com/kaola-fed/blog/issues/238
+
+
+http://jartto.wang/2018/12/11/git-rebase/
+
+https://segmentfault.com/a/1190000005614604?_ea=868190
+https://www.zoo.team/article/webpack
+
+研究 1.git rebase和git merge 区别
+
+git rebase 
+1).可以对提交的commit进行合并，整理commit提交历史
+2).合并其他分支。
+例如：
+git checkout experiment
+git rebase master
+
+原理：首先找到这两个分支，即当前分支experiment、变基操作的目标基底分支master的最近共同祖先C2.对比当前分支相对于该祖先的历次提交，提取相应的修改并存为临时文件
+
+研究 2.https和ssh

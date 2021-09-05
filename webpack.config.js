@@ -11,21 +11,23 @@ const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 // const WebPackBar = require('webpackbar')
 const ProgressBarPlugin = require('progress-bar-webpack-plugin')
 
+const webpack = require('webpack');
+
 // https://github.com/tcoopman/image-webpack-loader
 const path = require("path");
 /** @type {import('webpack').Configuration} */
 const config = {
-    mode: "production",
+    mode: "development",
     entry: {
         index: "./src/index.js",
-        print: "./src/print.js"
+        // print: "./src/print.js"
     },
     devtool: 'inline-source-map',
     output: {
         filename: "[name].bundle.js",
         path: path.resolve(__dirname, "dist"),
         clean: true,
-        publicPath: ''
+        publicPath: '/'
         // library: {
         //     // type: 'commonjs'
         // }
@@ -35,18 +37,19 @@ const config = {
     },
     devServer: {
         static: './dist',
-        client: {
-            // 
-            overlay:{
-                errors: true
-            }
-        },
-        writeToDisk: true,
+        hot: true,
+        // client: {
+        //     // 
+        //     overlay:{
+        //         errors: true
+        //     }
+        // },
+        // writeToDisk: true,
     },
-    // performance: {
-    //     // 构建性能提示关闭
-    //     hints: false
-    // },
+    performance: {
+        // 构建性能提示关闭
+        hints: false
+    },
     plugins: [
         new MiniCssExtractPlugin({
             filename: "[name].css",
@@ -60,7 +63,8 @@ const config = {
         }),
         new WebpackManifestPlugin(),
         // new CleanWebpackPlugin(),
-        new ProgressBarPlugin()
+        new ProgressBarPlugin(),
+        new webpack.HotModuleReplacementPlugin(),
     ],
     optimization: {
         runtimeChunk: false,
