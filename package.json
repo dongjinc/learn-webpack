@@ -12,6 +12,7 @@
   "dependencies": {
     "axios": "^0.21.1",
     "ejs": "^3.1.6",
+    "lodash": "^4.17.21",
     "njk": "^3.4.8"
   },
   "devDependencies": {

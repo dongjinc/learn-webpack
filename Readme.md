@@ -126,6 +126,9 @@ static: {
 }
 访问地址 http://[devServer.host]:[devServer.port]/[static.publicPath]/[output.filename]
 
+<!-- 模块热替换 -->
+官方 dev-server.js config配置中plugin少写了一个s导致，还请注意
+
 
 1.webpack-dev-middleware是一个封装器，可以把webpack处理过的文件发送到一个server，webpack-dev-server在内部使用了它。然而它也可以作为一个单独的package来使用，一边根据需求进行更多自定义设置
 其中webpack-dev-middleware并不支持liveReload，如果要支持reload需要借助 webpack-hot-middleware
@@ -136,9 +139,89 @@ static: {
 2.HMR加载样式
 借助于style-loader，使用模块热替换来加载css。主要是因为loader幕后使用了module.hot.accept
 
+## 代码分离
+- 概述：此特性能够把代码分离到不同的bundle中，然后可以按需加载或并行加载这些文件。
+- 方法：
+  - 1).**入口起点**：使用entry配置手动地分离代码 
+  - 2).**使用entry**：dependencies或者splitChunksPlugin去重和分离chunk
+  - 3).**动态导入**：通过模块的内联函数调用来分离代码
 
-<!-- 模块热替换 -->
-官方 dev-server.js config配置中plugin少写了一个s导致，还请注意
+#### 入口起点
+- src/index.js和src/another-module.js共同引入lodash。会存在一下隐患
+  - 如果入口chunk之间包含一些重复模块，那些重复模块都会被引入到各个bundle中
+  - 方法不够灵活，不能动态地将核心应用程序、逻辑代码拆分出来
+  - 为了解决以上重复模块问题。
+
+   ```
+   entry: {
+        index: {
+            import: './src/index.js',
+            dependOn: 'shared'
+        },
+        another:{
+            import: './src/another-module.js',
+            dependOn: 'shared'
+        },
+        shared: ['lodash'] // 可以在多个chunk之间共享模块
+    },
+    <!-- 需要学习下 -->
+    optimization: { // 知识点 一个模块永远不会被多次实例化这很重要。 https://bundlers.tooling.report/code-splitting/multi-entry/
+        runtimeChunk: 'multiple' / 'single'
+    }
+   ```
+#### splitChunksPlugin
+- 概述：将公共依赖模块提取到已有的入口chunk中，或者提取到一个新生成的chunk。
+```
+ optimization: {
+        splitChunks: {
+            chunks: 'all'
+        }
+    }
+```
+- 移除重复的依赖模块，插件将load分离到单独的chunk，并将其从main bundle中移除，减轻大小。mini-css-extract-plugin 用于将css从主应用程序中分离
+
+#### 动态导入
+- 概述：涉及动态代码拆分时，webpack提供了两个类似的技术。第一种import() 第二个webpack特定的 require.ensure()
+- ⚠️：import调用会在内部用到promises。如果在旧版浏览器，使用import，记得使用一个polyfill库
+```
+  return import('lodash').then(({default: _}) => {
+        const element = document.createElement('div')
+        element.innerHTML = _.join(['Hello', 'webpack'])
+        return element
+    })
+```
+#### 预获取/预加载模块(prefetch/preload module)
+- webpack v4.6.0+ 增加了对预获取和预加载的支持
+- prefetch(预获取)：将来某些导航下可能需要的资源
+- preload(预加载)：当前导航下可能需要的资源
+```
+  import(/* webpackPrefetch: true */ './path/to/LoginModal.js');
+  
+
+    if((!__webpack_require__.o(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && true) {
+  /******/ 				installedChunks[chunkId] = null;
+  /******/ 				var link = document.createElement('link');
+  /******/ 		
+  /******/ 				if (__webpack_require__.nc) {
+  /******/ 					link.setAttribute("nonce", __webpack_require__.nc);
+  /******/ 				}
+  /******/ 				link.rel = "prefetch";
+  /******/ 				link.as = "script";
+  /******/ 				link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
+  /******/ 				document.head.appendChild(link);
+  /******/ 			}
+  <!-- 会生成<link rel="prefetch" href="login-modal-chunk.js"> 并追加到页面头部 -->，指示
+```
+- ⚠️：只要父chunk完成加载，webpack就会添加prefetch hit(预取提示)
+
+- 不同点
+ - preload chunk 会在父 chunk 加载时，以并行方式开始加载。prefetch chunk 会在父 chunk 加载结束后开始加载。
+ - preload chunk 具有中等优先级，并立即下载。prefetch chunk 在浏览器闲置时下载。
+ - preload chunk 会在父 chunk 中立即请求，用于当下时刻。prefetch chunk 会用于未来的某个时刻。
+浏览器支持程度不同。
+
+<!-- https://www.jiqizhixin.com/articles/2020-07-24-12 -->
+
 
 - webpack 打包进度条 
 webpackbar
