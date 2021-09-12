@@ -390,7 +390,99 @@ externals: {
   - 开发第三方插件库时，如果依赖了某个第三方包时，比如(lodash),通过设置peerDependencies暴露给插件的使用者依赖内需要使用的lodash版本号。
   - 简述：peerDependencies 用来防止多次引入相同的库。对于开发插件来说，都知道使用者一定会提供宿主自身，因此不必在插件库中重复打包安装相同宿主自身。
   - 🌰：vuex作为状态管理器，vuex并没有dependencies。我们都知道vuex一定会依赖vue。因此vuex知道你如果要使用他，就一定会使用vue。所以他也就不会在dependencies中写入。比如webpack、babel、eslint等他们的插件都知道使用者一定会提供宿主自身
+  - 开发第三方插件库时，package.json main字段指向打包后的路径文件地址
 
+## 环境变量 
+- 要想消除webpack.config.js在开发环境和生产环境之间的差异。是需要环境变量
+- Tips 1.webpack环境变量与操作系统中的bash和CMD.exe这些shell环境变量不同
+```
+webpack命令行 --env参数，可以允许你传入任意数量的环境变量。在webpack.config.js中可以访问到这些环境变量 --env production --env global=local
+⚠️：如果设置env变量，却没有赋值，--env production默认表示将env.production设置为true
+⚠️：通常module.exports指向配置对象。要使用env变量，你必须将module.exports转换成一个函数
+
+module.exports = (env) => {
+  console.log(env.production, env) //
+  return {
+      entry: './src/index.js',
+      output: {
+          filename: 'bundle.js',
+          path: path.resolve(__dirname, 'dist')
+      }
+  }
+}
+```
+
+## 构建性能
+#### 通用环境
+- loader将应用于最少数量的必须模块。
+```
+  module: {
+        rules: [
+            // https://webpack.docschina.org/loaders/babel-loader/
+            {
+                test: /.js$/,
+                include: path.resolve(__dirname, 'src'), // 通过使用include字段，仅将loader应用在实际需要将其转换的模块
+                loader: 'babel-loader' // babel-loader @babel/core @babel/preset-env
+            }
+        ]
+    }
+```
+- 每个额外的loader/plugin都有其启动时间。尽量地使用工具
+- 解析（@TODO: 研究一下）
+  - 减少resolve.modules、extensions、mainFiles、descriptionFiles中条目数量，因为他们会增加文件系统调用的次数
+  - 如果不使用symlinks（例如 npm link 或 yarn link），可以设置resolve.symlinks: false
+  - 如果使用自定义resolve plugin规则，并且没有制定context上下文。可以设置resolve.cacheWithContext: false
+
+- dll 使用DllPlugin为更改不频繁的代码生成单独的编译结果。这可以提供应用程序的编译速度，尽管它增加了构建过程的复杂度（@TODO:）
+``` 
+<!-- dllPlugin和dllReferencePlugin -->
+DllPlugin就是将包含大量复用模块且不频繁更新的库进行编译，只需要编译一次。编译完成后存在指定的文件（这里称为动态链接库）。
+在之后的构建过程中不会对这些模块进行编译，而是直接使用DllReferencePlugin来引用动态链接库的代码。从而大大提高构建速度
+⚠️：第一次打包，请先运行dllPlugin生成动态链接库（用于让 DllReferencePlugin 能够映射到相应的依赖上）
+⚠️：DllPlugin创建动态链接时，需要单独创建一个js文件，用webpack进行输出dll.js和manifest.json文件。一般只针对第三方库而言建议使用DllPlugin。例如react、react-dom、lodash
+⚠️：在打包项目配置文件中，加入dllReferencePlugin,来引入DllPlugin创建出的manifest.json。打包会输出 delegated（委托）标识符
+https://juejin.cn/post/6844903777296728072#heading-18
+https://github.com/webpack/webpack/tree/main/examples/dll
+```
+- 减少编译结果的整体大小，以提高构建性能。尽量保持chunk体积小。
+  - 使用数量更少、体积更小的library
+  - 在多页面应用程序中使用SplitChunksPlugin。并开启async模式
+  - 移除未引用代码
+  - 只编译你当前正开发的那些代码
+
+- worker池（worker pool）
+  thread-loader可以将非常消耗资源的loader分流给一个worker pool
+```
+rules: [
+  // https://webpack.docschina.org/loaders/babel-loader/
+  {
+    test: /\.js$/,
+    include: path.resolve(__dirname, "src"), // 通过使用include字段，仅将loader应用在实际需要将其转换的模块
+    use: [
+        // 'thread-loader', 如果小项目，文件不多无需开启多进程打包，反而会变慢，因为开启进程时需要花费时间的。
+        {
+            loader: 'babel-loader', // babel-loader @babel/core @babel/preset-env
+            options: {
+              presets: [
+                [
+                  "@babel/preset-env",
+                  {
+                    useBuiltIns: "entry",
+                    targets: { chrome: "68" }, // 通过targets 控制包输出的结果是否兼容对应目标浏览器
+                  },
+                ],
+              ],
+            },
+          }
+    ],
+  },
+]
+
+```
+- webpack cache（持久化） @TODO: 非常棒的功能
+
+#### 开发环境
+https://webpack.docschina.org/guides/build-performance/
 
 - webpack 打包进度条 
 webpackbar
