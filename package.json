@@ -1,7 +1,7 @@
 {
-  "name": "webpack",
+  "name": "webpack-number",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.webpack-numbers.js",
   "license": "MIT",
   "scripts": {
     "dev": "webpack --mode=development",

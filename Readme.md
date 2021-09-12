@@ -171,6 +171,13 @@ static: {
    ```
 #### splitChunksPlugin
 - 概述：将公共依赖模块提取到已有的入口chunk中，或者提取到一个新生成的chunk。
+- 在webpack v4之前使用 CommonsChunkPlugin 来避免。目前webpack v4以后移除了 CommonsChunkPlugin。取而代之的是 optimization.splitChunks
+  - webpack根据以下条件自动拆分 chunks:
+    - 新的 chunk 可以被共享，或者模块来自于 node_modules 文件夹
+    - 新的 chunk 体积大于 20kb（在进行 min+gz 之前的体积）
+    - 当按需加载 chunks 时，并行请求的最大数量小于或等于 30
+    - 当加载初始化页面时，并发请求的最大数量小于或等于 30
+
 ```
  optimization: {
         splitChunks: {
@@ -221,6 +228,168 @@ static: {
 浏览器支持程度不同。
 
 <!-- https://www.jiqizhixin.com/articles/2020-07-24-12 -->
+
+## 缓存
+- 概述：通过webpack打包我们模块化后的应用程序，webpack会生成一个可部署的/dist目录，然后把打包后的内容放置在此目录中。将dist文件放在服务器上，用户(client)获取资源时比较耗费资源，由此产生浏览器缓存技术，可降低网络流量，使网站加载速度更快。
+#### 输出文件的文件名
+```
+  output: {
+      filename: '[name].[contenthash].bundle.js',
+      path: path.resolve(__dirname, 'dist'),
+      clean: true
+  },
+  plugins: [
+      new HtmlWebpackPlugin({
+          title: 'Caching'
+      })
+  ]
+```
+- 在老webpack版本中，相对于打包出的文件名来说，可能通过配置会有所差异，webpack5.0会保持一致的contenthash。官方表明老版本会存在不一致的情况
+  - 产生原因： webpack在入口chunk中，包含了某些boilerplate（引导模版），特别是runtime和manifest。(boilerplate指webpack运行时的引导代码)
+
+
+#### 提取引导模版
+- 1). 通过 SplitChunksPlugin 可以用于将模块分离到独立的bundle中。webpack还提供了一个优化功能，可以使用 optimization.runtimeChunk选项将runtime代码拆分为一个单独的chunk。将其设置为single来为所有chunk创建一个runtime code
+
+```
+  optimization: {
+    runtimeChunk: 'single'
+  }
+```
+
+- 将第三方库(library) 提取到单独的vendor chunk文件中，比较推荐的做法。这是因为，它们很少像本地的源代码那样频繁修改。通过使用 SplitChunksPlugin插件的CacheGroups选项来实现
+
+```
+  splitChunks: {
+    cacheGroups: {
+      <!-- vendor -->
+      vendor: {
+        test: /[\\/]node_modules[\\/]/,
+        name: 'vendors',
+        chunks: 'all'
+      }
+    }
+  }
+
+```
+
+#### 模块标识符
+- 官方例子中新增了 print.js，修改main时，期望是指对 main bundle的hash发生变化。
+官方指出会对第三方的vendor hash也会产生变化。在最新的webpack5.0中未体现出这样的问题。可能是老版本问题，产生原因：每个module.id会默认地基于解析顺序进行增量。当解析顺序发生变化，ID也会随之改变(module.id)
+  - main bundle 会随着自身的新增内容的修改，而发生变化
+  - vendor bundle 会随着自身的module.id的变化，而发生变化
+  - manifest runtime 会因为现在包含一个新模块的引用，而发生变化
+- 第一个和最后一个符合预期的行为，vendor hash发生变化是需要修复的。将optimization.moduleIds设置为 ‘deterministic’ - 确定性
+```
+  optimization: {
+    moduleIds: 'deterministic'
+  }
+```
+
+#### 扩展 @TODO: 继续研究
+- 扩展 cacheGroups 可以单独配置第三方库(由于一个项目内引入第三方库会比较多，导致vendor文件大小会特别大，考虑以下几种方式，对vendor做拆分处理)
+```
+<!-- 第一种方式 -->
+  lodash: { // 处理第三方库
+      test: /[\\/]node_modules[\\/]lodash[\\/]/, // webpack处理路径时，始终包含Unix系统中的 / 和 Windows系统中 \。 使用[\\/]来表示路径分隔符的原因
+      name: 'lodash',
+      chunks: 'all',
+      minChunks: 1 ,
+  },
+  axios: { // 处理第三方库
+      test: /[\\/]node_modules[\\/]axios[\\/]/,
+      name: 'axios',
+      chunks: 'all',
+      minChunks: 1 ,
+  }
+<!-- 第二种方式 -->
+在entry入口配置引入第三方库的名称，来进行打包
+splitChunks: {
+  chunks: 'all', // 先将 引入模块 拆分出一个bundle
+  cacheGroups: {
+      vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          // cacheGroupKey here is `commons` as the key of the cacheGroup
+          name(module, chunks, cacheGroupKey) {
+            const moduleFileName = module
+              .identifier()
+              .split('/')
+              .reduceRight((item) => item);
+            const allChunksNames = chunks.map((item) => item.name).join('~');
+            return `${cacheGroupKey}-${allChunksNames}-${moduleFileName}`;
+          },
+        },
+  }
+}
+```
+- splitChunks.cacheGroups.{cacheGroup}.reuseExistingChunk // 如果当前chunk包含已从主bundle中拆分出的模块，则它将被重用，而不是生成新的模块
+
+#### 创建library(字典) @TODO: 继续研究
+- 如果打算开发js库时，类似lodash库都理应安装为devDependencies,而不是dependencies。因为我们不需要将其打包到我们的库中，这样我们库的体积会很容易变大
+- 暴露library,通过output.library配置项暴露入口从而导出内容
+``` 
+entry: {
+      index: './src/index.js'
+  },
+  output: {
+      path: path.resolve(__dirname, 'dist'),
+      filename: '[name].webpack-numbers.js',
+      clean: true,
+      library: 'webpackNumbers', // 通过library暴露出入口导出的内容
+  },
+  plugins: [
+      new HtmlWebpackPlugin()
+  ],
+  optimization: {
+      runtimeChunk: 'single',
+      splitChunks: {
+          chunks: 'all',
+          automaticNameDelimiter: '~'
+      }
+  }
+<!-- 以上会只能通过script标签引用而发挥作用，不能CommonJs、AMD、Nodejs等环境 -->
+<!-- 解决方式如下 -->
+ library: { 
+      name: 'webpackNumbers',
+      type: 'umd'
+  }
+  <!-- 注意几个问题 -->
+  通过👆配置：对于
+  export function xxx(){}
+  使用时
+  import xxx from 'xxxx'
+  xxx会提示undefined，使用时理应改成 import {xxx} from 'xxxx' 或者  通过
+  output: {
+        library: { // 输入一个库，作为你的入口做导出
+            name: 'webpackNumbers',
+            export: 'numToWord', // __webpack_exports__ = __webpack_exports__.numToWord[export]; 暴露指定方法
+            type: 'umd'
+        }
+    }
+  <!-- 产生的原因是因为 _xxx__WEBPACK_IMPORTED_MODULE_2__.default，而xxx未导出default -->
+```
+#### 外部化lodash 对于开发库来说，库内有使用其他依赖包时更倾向于把 其他依赖包当作 peerDependency
+- 1.通过 externals 定义当前包用到的相关库
+externals: {
+    lodash: {
+        commonjs: 'lodash',
+        commonjs2: 'lodash',
+        amd: 'lodash',
+        root: '_'
+    }
+}
+- 拓展 (本地包调试: npm link/yarn link)
+  - 第一步 在开发插件库中 使用npm link命令。⚠️:在使用前修改下 package.json中name字段，因为通过npm link命令后，会在全局文件生成[packageName]文件夹，其中packageName取自插件库 package.json中name字段
+  - 第二步 使用插件的项目中，使用npm link [packageName]命令，将会创建一个从全局安装的packageName到当前文件内node_modules下的符号链接
+  - 第三步 解除link，在项目中，使用 npm unlink [packageName]。建议将插件库link通过 npm unlink解除掉
+ ```  
+    npm link [packageName]
+    npm unlink [packageName]
+   ```
+- 拓展（peerDependencies）
+  - 开发第三方插件库时，如果依赖了某个第三方包时，比如(lodash),通过设置peerDependencies暴露给插件的使用者依赖内需要使用的lodash版本号。
+  - 简述：peerDependencies 用来防止多次引入相同的库。对于开发插件来说，都知道使用者一定会提供宿主自身，因此不必在插件库中重复打包安装相同宿主自身。
+  - 🌰：vuex作为状态管理器，vuex并没有dependencies。我们都知道vuex一定会依赖vue。因此vuex知道你如果要使用他，就一定会使用vue。所以他也就不会在dependencies中写入。比如webpack、babel、eslint等他们的插件都知道使用者一定会提供宿主自身
 
 
 - webpack 打包进度条 

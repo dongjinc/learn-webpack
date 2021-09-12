@@ -1,15 +1,28 @@
-function getComponent(){
-    return import('lodash').then(({default: _}) => {
-        const element = document.createElement('div')
-        element.innerHTML = _.join(['Hello', 'webpack'])
-        element.addEventListener('click', () => {
-            import(/* webpackPrefetch: true */ './obj').then(res => {
-                console.log(res)
-            })
-        })
-        return element
-    })
+import _ from 'lodash';
+import numRef from './ref.json';
+import printMe from './print';
+
+export function numToWord(num) {
+  return _.reduce(
+    numRef,
+    (accum, ref) => {
+      return ref.num === num ? ref.word : accum;
+    },
+    ''
+  );
 }
-getComponent().then((component) => {
-    document.body.appendChild(component)
-})
+
+export function wordToNum(word) {
+  return _.reduce(
+    numRef,
+    (accum, ref) => {
+      return ref.word === word && word.toLowerCase() ? ref.num : accum;
+    },
+    -1
+  );
+}
+
+export function love(word){
+  console.log(printMe)
+    console.log(webpackNumbers)
+}
