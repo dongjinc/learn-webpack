@@ -484,6 +484,183 @@ rules: [
 #### 开发环境
 https://webpack.docschina.org/guides/build-performance/
 
+## 增量编译
+- 使用webpack的watch mode（监听模式），而不使用其他工具来watch文件和调用webpack. watch mode会记录时间戳并将此信息传递给compilation以使缓存失效
+- watch mode会回退到pull mode（轮询模式）。监听许多文件会导致CPU大量负载。可通过watchOptions.poll来增加轮询的间隔时间
+
+## 在内存中编译
+- webpack-dev-server
+- webpack-hot-middleware
+- webpack-dev-middleware
+
+## stats.toJson加速 最小化每个增量构建步骤中，从stats对象获取的数据量 @TODO:
+
+## Devtool
+- "eval"具有最好的性能，但不能帮助转译代码。
+- 最佳选择 eval-cheap-module-source-map
+
+## 避免在生产环境下才会用到的工具
+- 某些utility、plugin和loader都只用于生产环境。如开发环境下使用TerserPlugin来minify(压缩)和mangle(混淆破坏)代码是没有意义的。
+
+## 最小化entry chunk
+- webpack只会在文件系统中输出已更新的chunk，对于output.chunkFileName的[name]/[chunkhash]/[contenthash]/[fullhash]来说，对已经更新的chunk无效之外，对于entry chunk也不会生效。
+确保生成entry chunk时，尽量减少其体积以提高性能。为运行时代码创建了一个额外的chunk。
+- runtimeChunk将包含chunks映射关系的list单独从主包中提取出来。
+```js
+  module.exports = {
+    // ...
+    optimization: {
+      runtimeChunk: true,
+    },
+};
+
+```
+## 避免额外的优化步骤
+- webpack通过执行额外的算法任务，来优化输出结果的体积和加载性能。
+- 比如： 
+```js
+module.exports = {
+  // ...
+  optimization: {
+    removeAvailableModules: false,
+    removeEmptyChunks: false,
+    splitChunks: false,
+  },
+};
+```
+## typescript loader
+```js
+module.exports = {
+  // ...
+  test: /\.tsx?$/,
+  use: [
+    {
+      loader: 'ts-loader',
+      options: {
+        transpileOnly: true, // 传入transpileOnly选项，以缩短使用ts-loader时的构建时间。
+      },
+    },
+  ],
+};
+// ⚠️：使用此选项，会关闭类型检查。通过使用ForkTsCheckerWebpackPlugin。该插件会将检查过程移至单独的进程，可以加快ts类型检查和eslint插入的速度
+// https://github.com/TypeStrong/ts-loader/tree/master/examples/fork-ts-checker-webpack-plugin
+```
+
+#### 依赖管理
+## commonjs
+- 如果require含有表达式，就会创建一个上下文哦
+```json
+  example_directory
+  │
+  └───template
+  │   │   table.ejs
+  │   │   table-row.ejs
+  │   │
+  │   └───directory
+  │       │   another.ejs
+  require调用被评估解析 - require('./template/' + name + '.ejs')
+```
+- webpack解析require()调用，会提取如以下信息
+- Directory: ./template Regular expression: /^.*\.ejs$/
+- context module 生成一个 context module（上下文模块）。包含目录下所有模块的引用
+如果一个request符合正则表达式，就能require进来。
+```
+  映射
+  {
+    "./table.ejs": 42,
+    "./table-row.ejs": 43,
+    "./directory/another.ejs": 44
+  }
+  这意味着webpack能够支持动态require,但会导致所有可能用到的模块都包含在bundle中
+  ⚠️：打包出来的webpack文件内部会有一个map映射，
+```
+## require.context
+```js
+/** 
+ * 参数一 指定目录
+ * 参数二 是否还搜索其子目录
+ * 参数三 表达匹配文件表达式
+ */
+console.log(require.context('./component/', true, /\.js$/))
+// 创建出一个context,其中文件来自test目录，request以 .js 结尾
+```
+- api -> resolve 是一个函数，它返回request被解析后得到的模块id
+- api -> keys 是一个函数，返回一个数组。
+- api -> id是context module的模块id. 在使用module.hot.accept会用到
+
+#### Tree shaking
+- 通过用于描述移除js上下文中未引用代码(dead-code)。它依赖于
+es5模块的静态结构特性，例如import和export
+- 动态结构特性
+ - 对于动态结构来说，导入和导出可以在运行时更改。
+- 静态结构特性
+ - 对于静态结构来说，编译时(静态地)确定导入和导出。只需要查看源代码，而不必执行它
+ - es6语法上强制执行，您只能在顶层导入和导出（永远不要嵌套在条件语句中）
+ - import和export语句没有动态部分（不允许使用变量）
+ - 好处
+ - 1.捆绑期间的死代码消除
+  - 在前端开发中，模块通常这样处理
+    - 在开发过程代码存在许多模块，通常是小模块
+    - 对于部署，这些模块被捆绑到几个相对较大的文件中。
+  - 捆绑原因
+    - 为了加载所有模块，需要检索的文件更少
+    - 压缩捆绑的文件比压缩单独的文件会更有效
+    - 捆绑期间，可以删除未使用的导出，节省空间
+  - 原因1 在http/1 很重要，请求文件的成本相对较高。随着http/2而改变，便显得无关紧要
+  - 原因3 通过具有静态结构的模块格式化实现
+- es6模块特性
+  - 1.它们的静态结构意味着捆绑格式不必考虑有条件加载的模块。(对于vue/组件可以有条件或按需导入模块是因为使用了编程加载器API)
+  - 2.导入是导出的制度视图，意味着您不必复制导出，可以直接引用它们。
+- 2.更快地查找导入
+  - 如果你需要一个commonjs库，会得到一个对象。
+  ```js
+  var lib = require('lib)
+  lib.someFunc()
+  // 通过访问命名导出lib.someFunc意味着您必须进行属性查找，这很慢。因为是动态的
+  // 相反，在es6中导入一个库，静态地知道它的内容并且可以优化访问
+  import * as lib from 'lib'
+  lib.someFunc()
+  ```
+- 3.同时支持同步和异步加载
+ - es6模块必须独立于引擎是同步加载模块（例如在服务器上）还是异步加载模块（例如浏览器中）。
+ 它的语法非常适合同步加载，异步加载由其静态结构启用。因为可以静态确定所有导入。可以在评估模块主体之前加载它们（类似AMD）
+
+- 4.准备好使用宏。TODO:
+- 5.变量检查
+  - 使用静态模块结构，始终可以静态地知道哪些变量在模块内任何位置可见
+  - 对于检查给定的标识符是否拼写正确非常有帮助。这种检查是jsLint和jsHint等linter的流行特性
+  - lib.foo 还可以静态检查命名导入（提示）
+- 6.支持模块之间的循环依赖 TODO:
+<!-- https://exploringjs.com/es6/ch_modules.html#static-module-structure -->
+
+## 常见模块问题
+- 1.使用一个变量来指定我想从哪个模块导入
+  - 由于import语句完全静态，它的模块说明符始终是固定。如果要动态确定要加载的模块，需要使用程序化加载器API
+  ```js
+    const moduleSpecifier = 'module_' + Math.random()
+    System.import(moduleSpecifier).then(module => {})
+  ```
+- 2.有条件地或按需导入模块
+  - 导入语句必须位于模块的顶层。意味着您不能将它们嵌套在if语句、函数等。如果有条件地或按需加载模块，就必须使用编程加载器API
+  ```js
+    if(Math.random()){
+      System.import('some_module').then(module => {})
+    }
+  ```
+- 3.是否可以在import语句中使用变量吗
+  - 不能。导入的内容不得依赖于在运行时计算任何内容。
+  ```js
+    import foo from 'some_module' + SUFFIX
+  ```
+- 4.可以在import语句中使用解构吗
+ - 不能
+ ```js
+    import {foo: {bar}} from 'some_module'
+ ```
+
+
+1.微前端 如何
+
 - webpack 打包进度条 
 webpackbar
 progress-bar-webpack-plugin
@@ -542,3 +719,9 @@ git rebase master
 原理：首先找到这两个分支，即当前分支experiment、变基操作的目标基底分支master的最近共同祖先C2.对比当前分支相对于该祖先的历次提交，提取相应的修改并存为临时文件
 
 研究 2.https和ssh
+
+文档书籍 https://exploringjs.com/es6/index.html#toc_ch_modules
+
+未来规划 -> 
+http、https
+微前端

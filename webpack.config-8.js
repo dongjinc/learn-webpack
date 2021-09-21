@@ -6,11 +6,24 @@ const webpack = require("webpack");
 /** @type {import('webpack').Configuration} */
 module.exports = {
   mode: "development",
+//   cache: {
+//       type: 'filesystem',
+//       allowCollectingMemory: false,
+//       version: '1.3'
+//   },
   entry: {
     index: "./src/index.js",
+    another: "./src/another-module.js",
+    //   vendors: ['lodash']
   },
+//   output: {
+//     filename: "[name].dll.js",
+//     path: path.resolve(__dirname, "dist"),
+//     library: "[name]_[hash]",
+//     clean: true,
+//   },
   output: {
-    filename: 'bundle.js',
+    filename: '[name].[contenthash].js',
     path: path.resolve(__dirname, 'dist'),
     clean: true
   },
@@ -41,10 +54,19 @@ module.exports = {
     ],
   },
   plugins: [
+    // new webpack.DllPlugin({
+    //     context: __dirname,
+    //     name: '[name]_[hash]',
+    //     path: path.join(__dirname, './manifest.json'),
+    //   }),
+    new webpack.DllReferencePlugin({
+      context: __dirname,
+      manifest: require("./manifest.json"),
+    }),
     new HtmlWebpackPlugin(),
   ],
   optimization: {
-    // runtimeChunk: true
+    runtimeChunk: true
   }
   //   optimization: {
   //       splitChunks: {
