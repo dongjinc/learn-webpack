@@ -658,6 +658,14 @@ es5模块的静态结构特性，例如import和export
     import {foo: {bar}} from 'some_module'
  ```
 
+#### plugin
+- PurgeCSSPlugin 对未使用css进行删除 https://github.com/FullHuman/purgecss/tree/main/packages/purgecss-webpack-plugin
+- Webpack Deep Scope Analysis Plugin 目前webpack5已支持 https://github.com/vincentdchan/webpack-deep-scope-analysis-plugin
+
+#### package
+- yargs-parser 命令行交互工具 http://yargs.js.org/
+
+#### FIS3
 
 1.微前端 如何
 
@@ -719,6 +727,7 @@ git rebase master
 原理：首先找到这两个分支，即当前分支experiment、变基操作的目标基底分支master的最近共同祖先C2.对比当前分支相对于该祖先的历次提交，提取相应的修改并存为临时文件
 
 研究 2.https和ssh
+ssh -p3000 root@14.17.22.32
 
 文档书籍 https://exploringjs.com/es6/index.html#toc_ch_modules
 

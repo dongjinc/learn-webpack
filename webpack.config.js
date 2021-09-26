@@ -2,15 +2,27 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const webpack = require("webpack");
+const glob = require('glob')
+const argv = require('yargs-parser')(process.argv.slice(2))
+const { resolve } = require("path");
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const PurgeCSSPlugin = require('purgecss-webpack-plugin')
+
+const customExtractor = (content) => content.match(/[A-z0-9-:/]+/g) || [];
+const PATHS = {
+  src: path.join(__dirname, "src"),
+};
+
+console.log(glob.sync(path.join(__dirname, './src/**/*'), { nodir: true }))
 
 /** @type {import('webpack').Configuration} */
 module.exports = {
   mode: "development",
   entry: {
-    index: "./src/index.js",
+    bundle: './src/index.js'
   },
   output: {
-    filename: 'bundle.js',
+    // filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'dist'),
     clean: true
   },
@@ -38,14 +50,40 @@ module.exports = {
               }
         ],
       },
+      {
+        test: /\.css$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader'
+        ]
+      }
     ],
   },
   plugins: [
-    new HtmlWebpackPlugin(),
+    new HtmlWebpackPlugin({
+      template: './src/index.html'
+    }),
+    new MiniCssExtractPlugin({
+      filename: "[name].css",
+    }),
+    new PurgeCSSPlugin({
+      paths: glob.sync(path.join(__dirname, './src/**/*'), { nodir: true }),
+      styleExtensions: [".css"],
+      safelist: ["safelisted"],
+      only: ["bundle"],
+      extractors: [
+        {
+          extractor: customExtractor,
+          extensions: ["html", "js"],
+        },
+      ],
+    }),
+    
   ],
-  optimization: {
-    // runtimeChunk: true
-  }
+  // optimization: {
+  //   innerGraph: true
+  //   runtimeChunk: true
+  // },
   //   optimization: {
   //       splitChunks: {
   //           chunks: 'all'
@@ -54,4 +92,16 @@ module.exports = {
   //   resolve: {
   //       extensions: []
   //   }
+  optimization: {
+    splitChunks: {
+      // cacheGroups: {
+      //   styles: {
+      //     name: 'styles',
+      //     test: /\.css$/,
+      //     chunks: 'all',
+      //     enforce: true
+      //   }
+      // }
+    }
+  }
 };

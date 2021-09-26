@@ -1,0 +1,20 @@
+.hello {
+  color: red;
+  font-size: 1;
+}
+
+.unused {
+  color: blue;
+}
+
+.safelisted {
+  color: green;
+}
+
+md\:w-2\/3 {
+  color: red;
+}
+
+.yong{
+  color: red;
+}
